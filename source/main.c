@@ -1,7 +1,7 @@
 /*	Author: nmoor004
  *  Partner(s) Name: 
  *	Lab Section:
- *	Assignment: Lab # 4  Exercise # 2
+ *	Assignment: Lab # 4  Exercise # 3
  *	Exercise Description: [optional - include for your own benefit]
  *
  *	I acknowledge all content contained herein, excluding template or example
@@ -12,69 +12,90 @@
 #include "simAVRHeader.h"
 #endif
 
-unsigned char Incrementer(unsigned char input_val, int op_type) {
-	
-	if ((input_val == 0x00) || (input_val == 0x09)) { // The program stops at 0x00 and 0x09. This
-		return sum; 				 //checks for those values.
-	}	
-
-	unsigned char one = 0x01;
-	unsigned char temp_value = input_val;
-	if (op_type == 0) { // Add
-
-		}
-	}
-	else if (op_type == 1) { // Subtract
-
-	}
-
-
-return sum;
 }
 
 
 
-enum Inc_States { Inc_Start, Inc_init, Inc_Idle, Inc_Add, Inc_Subtract, Inc_Reset} Inc_State;
+unsigned char button_check(unsigned char input_val) {
+	int counter = 0;
+	while (input_val != 0x00) {
+		if ((input_val & 0x01) == 0x01) {
+			counter++;
+		}
+		input_val >>= 1;
+	}
 
-void Tick_Inc(unsigned char temp_val) {
+	if (counter > 1) {
+		return 0x00;
+	}
+	else {
+		return 0x01;
+	}
+}
 
-	unsigned char sum = PORTB; 
-	unsigned char A0 = temp_val & 0x01;  // Get 0th bit
-	unsigned char A1 = (temp_val & 0x02) >> 1; // Get 1st bit
-	switch(Inc_State) {     //Transitions 
-		case Inc_Start: // Machine Start Transition
-			Inc_State = Inc_init;
-			
+enum Door_States { Door_init, Door_Check, Door_Hash, Door_Y, Door_Lock, Door_Unlock, Door_Reset } Door_State;
+
+void Tick_Door(unsigned char temp_val) {
+	unsigned char button_check = One_Button(temp_val);
+	switch(Door_State) {
+		case Door_init: 
+			Door_State = Door_Check;
 			break;
+		case Door_Check:
+			if ((temp_val & 0x80) == 0x80) {
+				Door_State = Door_Lock;
+			} 
 
-		case Inc_init: 
-			Inc_State = Inc_Idle;
-			break;
-		
-		case Inc_Idle:
-			if ((A0) && (A1)) {
-				Inc_State = Inc_Reset;
 			}
-			else if ((A0) && (!A1)) {
-				Inc_State = Inc_Add;
+			else if (button_check == 0x01) { //Now we can move on to checking what button is being pressed
+				if (temp_val == 0x02) {
+					Door_State = Door_Hash;
+				}
+				else if (temp_val == 0x04) {
+					Door_State = Door_Y;
+				}
+				else {
+					Door_State = Door_Reset;
 			}
-			else if ((!A0) && (A1)) {
-				Inc_State = Inc_Subtract;
-			}
-			break; 
 
-		case Inc_Add: //Uses an Increment function from above to keep code clean
-			PORTB = Incrementer(sum, 0);
-			Inc_State = Inc_Idle;
+			break;
+		case Door_Lock:
+			Door_State = Door_Check;
+			break;
+		case Door_Unlock:
+			Door_State = Door_Check;
+		case Door_#: 
+			if ((temp_val &
+			Door_State = Door_Check;
 			break;
 
-		case Inc_Subtract:
-			PORTB = Incrementer(sum, 1);
-			Inc_State = Inc_Idle;
 			break;
-		case Inc_Reset:
+		case Door_Reset:
+			Door_State = Door_Check;
+	}
+
+	switch(Door_State) {
+		case Door_init: 
+			Door_State = Door_Check;
+			break;
+		case Door_Check: 
+			PORTC = 0x01;
+
+			break;
+		case Door_Lock:
 			PORTB = 0x00;
-			Inc_State = Inc_Idle;
+			PORTC = 0x02;
+			break;
+		case Door_Unlock:
+			PORTB = 0x01;
+			PORTC = 0x03;
+			break;
+		case Door_Y:
+			break;
+		case Door_Hash:
+			break;
+		case Door_Reset:
+			break;
 
 	}
 
@@ -82,16 +103,16 @@ void Tick_Inc(unsigned char temp_val) {
 
 int main(void) {
     /* Insert DDR and PORT initializations */
-	DDRA = 0x00; PORTA = 0xFF;  //input
-	DDRB = 0xFF; PORTB = 0x00; //output
+	DDRA = 0x00; PORTA = 0xFF;   //input
+	DDRB = 0xFF; PORTB = 0x00;  //output
+	DDRC = 0xFF; PORTC = 0x00; //output
     /* Insert your solution below */
-	Inc_State = Inc_Start;
-	unsigned char temp_val = PINA;
-	PORTB = 0x07;
+	unsigned temp_val = PINA; 
 
+	
     while (1) {
 	
-		Tick_Inc(temp_val);
+		Tick_Door(temp_val);
 		temp_val = PINA; 
 	}
     return 1;
